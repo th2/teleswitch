@@ -2,13 +2,15 @@
 
 import config
 import logging
+import threading
 from PIL import ImageGrab
 from telegram import Update, ForceReply
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(name)s: %(message)s', level=logging.INFO)
-
 logger = logging.getLogger(__name__)
+
+updater = Updater(config.token)
 
 def status(update: Update, context: CallbackContext) -> None:
     if update.effective_user.id == config.userId:
@@ -20,15 +22,24 @@ def screenshot(update: Update, context: CallbackContext) -> None:
         screenshot.save(r'temp/screenshot.png')
         update.message.reply_photo(open('temp/screenshot.png', 'rb'))
 
+def stop(update: Update, context: CallbackContext) -> None:
+    if update.effective_user.id == config.userId:
+        update.message.reply_text('shutting down')
+        threading.Thread(target=shutdown).start()
+
+def shutdown():
+    updater.stop()
+    updater.is_idle = False
+
 def echo(update: Update, context: CallbackContext) -> None:
     if update.effective_user.id == config.userId:
         update.message.reply_text(f'unknown: {update.message.text}')
 
 def main() -> None:
-    updater = Updater(config.token)
     dispatcher = updater.dispatcher
     dispatcher.add_handler(CommandHandler('status', status))
     dispatcher.add_handler(CommandHandler('screenshot', screenshot))
+    dispatcher.add_handler(CommandHandler('stop', stop))
     dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
     dispatcher.bot.send_message(config.userId, 'bot started')
 
